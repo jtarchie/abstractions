@@ -57,6 +57,19 @@ var _ = Describe("Async", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(value).To(Equal(true))
 			})
+
+			It("returns the same value when called consecutively", func() {
+				task := task.Async(func() (interface{}, error) {
+					return true, nil
+				})
+
+				Consistently(func() bool {
+					value, err := task.Await(1 * time.Second)
+
+					Expect(err).ToNot(HaveOccurred())
+					return value.(bool)
+				}).Should(Equal(true))
+			})
 		})
 	})
 })

@@ -11,8 +11,9 @@ type retval struct {
 	value interface{}
 }
 type task struct {
-	fn     work
-	retval chan retval
+	fn    work
+	wait  chan retval
+	final *retval
 }
 
 var NoOpFunc = func() (interface{}, error) {
@@ -21,13 +22,13 @@ var NoOpFunc = func() (interface{}, error) {
 
 func Async(fn work) *task {
 	task := &task{
-		fn:     fn,
-		retval: make(chan retval, 1),
+		fn:   fn,
+		wait: make(chan retval, 1),
 	}
 
 	go func() {
 		value, err := task.fn()
-		task.retval <- retval{
+		task.wait <- retval{
 			err:   err,
 			value: value,
 		}
@@ -41,10 +42,17 @@ func (t *task) Pid() uint64 {
 }
 
 func (t *task) Await(timeout time.Duration) (interface{}, error) {
-	select {
-	case retval := <-t.retval:
-		return retval.value, retval.err
-	case <-time.After(timeout):
-		return nil, errors.New("timeout occurred")
+	if t.final == nil {
+		select {
+		case retval := <-t.wait:
+			t.final = &retval
+		case <-time.After(timeout):
+			t.final = &retval{
+				value: nil,
+				err:   errors.New("timeout occurred"),
+			}
+		}
 	}
+
+	return t.final.value, t.final.err
 }

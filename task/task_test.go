@@ -9,10 +9,12 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Async", func() {
-	It("returns a Task", func() {
-		task := task.Async(task.NoOpFunc)
-		Expect(task.Pid()).To(BeNumerically("==", 0))
+var _ = Describe("tasks", func() {
+	Context("Await", func() {
+		It("returns a Task", func() {
+			task := task.Async(task.NoOpFunc)
+			Expect(task.Pid()).To(BeNumerically("==", 0))
+		})
 	})
 
 	Context("Await", func() {

@@ -58,3 +58,16 @@ func (t *task) Await(timeout time.Duration) (interface{}, error) {
 
 	return t.final.value, t.final.err
 }
+
+func (t *task) Yield(timeout time.Duration) (interface{}, error) {
+	if t.final == nil {
+		select {
+		case retval := <-t.wait:
+			t.final = &retval
+		case <-time.After(timeout):
+			return nil, nil
+		}
+	}
+
+	return t.final.value, t.final.err
+}

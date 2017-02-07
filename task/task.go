@@ -7,14 +7,14 @@ import (
 )
 
 type work func() (interface{}, error)
-type retval struct {
-	err   error
-	value interface{}
+type value struct {
+	Err      error
+	Returned interface{}
 }
 type task struct {
 	fn    work
-	wait  chan retval
-	final *retval
+	wait  chan value
+	final *value
 	once  sync.Once
 }
 
@@ -25,14 +25,14 @@ var NoOpFunc = func() (interface{}, error) {
 func Async(fn work) *task {
 	task := &task{
 		fn:   fn,
-		wait: make(chan retval, 1),
+		wait: make(chan value, 1),
 	}
 
 	go func() {
-		value, err := task.fn()
-		task.wait <- retval{
-			err:   err,
-			value: value,
+		returned, err := task.fn()
+		task.wait <- value{
+			Err:      err,
+			Returned: returned,
 		}
 	}()
 
@@ -43,18 +43,22 @@ func (t *task) Pid() uint64 {
 	return 0
 }
 
-func (t *task) Await(timeout time.Duration) (interface{}, error) {
+func (t *task) awaitWithValue(timeout time.Duration) *value {
 	t.once.Do(func() {
-		value, err := t.Yield(timeout)
-		if value == nil && err == nil {
-			t.final = &retval{
-				value: nil,
-				err:   errors.New("timeout occurred"),
+		returned, err := t.Yield(timeout)
+		if returned == nil && err == nil {
+			t.final = &value{
+				Returned: nil,
+				Err:      errors.New("timeout occurred"),
 			}
 		}
 	})
+	return t.final
+}
 
-	return t.final.value, t.final.err
+func (t *task) Await(timeout time.Duration) (interface{}, error) {
+	t.awaitWithValue(timeout)
+	return t.final.Returned, t.final.Err
 }
 
 func (t *task) Yield(timeout time.Duration) (interface{}, error) {
@@ -67,5 +71,5 @@ func (t *task) Yield(timeout time.Duration) (interface{}, error) {
 		}
 	}
 
-	return t.final.value, t.final.err
+	return t.final.Returned, t.final.Err
 }

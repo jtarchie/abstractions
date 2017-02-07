@@ -9,8 +9,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("tasks", func() {
-	Context("Await", func() {
+var _ = Describe("Task", func() {
+	Context("Async", func() {
 		It("returns a Task", func() {
 			task := task.Async(task.NoOpFunc)
 			Expect(task.Pid()).To(BeNumerically("==", 0))

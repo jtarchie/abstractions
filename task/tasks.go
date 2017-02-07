@@ -8,22 +8,22 @@ import (
 type Values []*value
 type Tasks []*task
 
-func (t Tasks) Await(timeout time.Duration) Values {
+func (tasks Tasks) Await(timeout time.Duration) Values {
 	var wg sync.WaitGroup
 
-	for _, task := range t {
+	for _, t := range tasks {
 		wg.Add(1)
-		go func() {
+		go func(t *task) {
 			defer wg.Done()
-			task.Await(timeout)
-		}()
+			t.Await(timeout)
+		}(t)
 	}
 
 	wg.Wait()
 
 	var values Values
-	for _, task := range t {
-		values = append(values, task.awaitWithValue(0))
+	for _, t := range tasks {
+		values = append(values, t.awaitWithValue(0))
 	}
 	return values
 }

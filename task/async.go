@@ -2,6 +2,7 @@ package task
 
 import (
 	"errors"
+	"sync"
 	"time"
 )
 
@@ -14,6 +15,7 @@ type task struct {
 	fn    work
 	wait  chan retval
 	final *retval
+	once  sync.Once
 }
 
 var NoOpFunc = func() (interface{}, error) {
@@ -42,7 +44,7 @@ func (t *task) Pid() uint64 {
 }
 
 func (t *task) Await(timeout time.Duration) (interface{}, error) {
-	if t.final == nil {
+	t.once.Do(func() {
 		select {
 		case retval := <-t.wait:
 			t.final = &retval
@@ -52,7 +54,7 @@ func (t *task) Await(timeout time.Duration) (interface{}, error) {
 				err:   errors.New("timeout occurred"),
 			}
 		}
-	}
+	})
 
 	return t.final.value, t.final.err
 }

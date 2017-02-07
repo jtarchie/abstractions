@@ -45,10 +45,8 @@ func (t *task) Pid() uint64 {
 
 func (t *task) Await(timeout time.Duration) (interface{}, error) {
 	t.once.Do(func() {
-		select {
-		case retval := <-t.wait:
-			t.final = &retval
-		case <-time.After(timeout):
+		value, err := t.Yield(timeout)
+		if value == nil && err == nil {
 			t.final = &retval{
 				value: nil,
 				err:   errors.New("timeout occurred"),
